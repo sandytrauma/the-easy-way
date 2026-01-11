@@ -11,7 +11,11 @@ import { chats } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
-export async function DashboardNav() {
+interface DashboardNavProps {
+  isAdmin: boolean;
+}
+
+export async function DashboardNav({ isAdmin }: DashboardNavProps) {
   const session = await auth();
   const userId = (session?.user as any).id;
 
@@ -67,6 +71,18 @@ export async function DashboardNav() {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-400 uppercase px-2">Admin</p>
+          <Link 
+            href="/dashboard/admin" 
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-100"
+          >
+            Admin Panel
+          </Link>
         </div>
       )}
 

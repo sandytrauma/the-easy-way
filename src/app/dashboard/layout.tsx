@@ -7,6 +7,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // 1. Get the session on the server
   const session = await auth();
 
+  
+
   // 2. Safety check (though middleware handles this, it's good practice)
   if (!session) {
     redirect("/login");
