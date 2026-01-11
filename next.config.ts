@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // This helps Next.js handle the binary/complex parts of PDF.js
+  serverExternalPackages: ["pdfjs-dist"],
 };
 
 export default nextConfig;

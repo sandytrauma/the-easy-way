@@ -1,11 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { signIn } from "@/lib/auth"; // Import the sign-in function
-import { AuthError } from "next-auth";
+import { signIn } from "@/lib/auth";
 import Link from "next/link";
+import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 
-export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string; success?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const error = params.error;
+  const success = params.success;
+
   return (
     <div className="flex h-screen w-full items-center justify-center px-4">
       <Card className="w-full max-w-sm">
@@ -16,52 +25,60 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* We wrap the fields in a form with a Server Action */}
           <form
-            action={async (formData) => {
+            action={async (formData: FormData) => {
               "use server";
+              const email = formData.get("email");
+              const password = formData.get("password");
+
               try {
-                await signIn("credentials", formData);
+                await signIn("credentials", {
+                  email,
+                  password,
+                  redirectTo: "/dashboard",
+                });
               } catch (error) {
                 if (error instanceof AuthError) {
-                  // Handle specific errors or redirect back with query param
-                  return; 
+                  // This catches authentication-specific failures
+                  return redirect(`/login?error=CredentialsSignin`);
                 }
+                // Next.js triggers redirects by throwing a specific error.
+                // We MUST re-throw it so the browser actually navigates.
                 throw error;
               }
             }}
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Input 
-                name="email" // name attribute is vital for formData
-                id="email" 
-                type="email" 
-                placeholder="m@example.com" 
-                required 
-              />
+              <Input name="email" type="email" placeholder="m@example.com" required />
             </div>
             <div className="space-y-2">
-              <Input 
-                name="password" // name attribute is vital for formData
-                id="password" 
-                type="password" 
-                required 
-              />
+              <Input name="password" type="password" placeholder="••••••••" required />
             </div>
-            {searchParams?.error && (
-              <p className="text-sm text-red-500 text-center">Invalid credentials</p>
+
+            {error && (
+              <p className="text-sm font-medium text-destructive text-center p-2 bg-destructive/10 rounded">
+                Invalid email or password
+              </p>
             )}
+            
+            {success && (
+              <p className="text-sm font-medium text-green-600 text-center p-2 bg-green-50 rounded">
+                {success}
+              </p>
+            )}
+
             <Button type="submit" className="w-full">
               Sign In
             </Button>
-            <div className="mt-4 text-center text-sm">
-  Don&apos;t have an account?{" "}
-  <Link href="/register" className="text-indigo-600 hover:underline">
-    Sign up
-  </Link>
-</div>
           </form>
+          
+          <div className="mt-4 text-center text-sm">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-indigo-600 hover:underline font-medium">
+              Sign up
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

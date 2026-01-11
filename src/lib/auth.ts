@@ -9,54 +9,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: "/login",
   },
-  session: { strategy: "jwt" }, // Use JWT for session management
+  session: { strategy: "jwt" },
+  trustHost: true, // Essential for Next.js 15+ local development
   providers: [
     Credentials({
       name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
       async authorize(credentials) {
-        // 1. Validate input
+        // 1. Validate that the fields are present
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        // 2. Look up user in Neon DB
+        // 2. Fetch the user from Neon DB
         const [user] = await db
           .select()
           .from(users)
           .where(eq(users.email, credentials.email as string));
 
-        // 3. If user doesn't exist, return null
+        // 3. If user doesn't exist, return null (triggers Invalid Credentials)
         if (!user) {
           return null;
         }
 
-        // 4. Compare hashed password
+        // 4. Compare the provided password with the hashed password in the DB
         const passwordsMatch = await bcrypt.compare(
           credentials.password as string,
           user.password
         );
 
-        // 5. If passwords match, return the user object (this populates the JWT)
+        // 5. If they match, return the user object to be encoded in the JWT
         if (passwordsMatch) {
           return {
-            id: user.id,
+            id: user.id.toString(),
             name: user.name,
             email: user.email,
-            plan: user.plan,
+            plan: user.plan, // This allows the platform to gate features
           };
         }
 
+        // 6. If password is wrong, return null
         return null;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Pass the subscription plan from user to token
+      // The 'user' object is only available the first time the JWT is created
       if (user) {
         token.id = user.id;
         token.plan = (user as any).plan;
@@ -64,7 +62,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      // Pass the subscription plan from token to the frontend session
+      // Attach the custom data from the token to the session object
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).plan = token.plan;
