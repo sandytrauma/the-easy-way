@@ -16,7 +16,7 @@ export const users = pgTable("users", {
 
 export const chats = pgTable("chats", {
   id: serial("id").primaryKey(),
-  userId: uuid("user_id").references(() => users.id),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   pdfName: text("pdf_name").notNull(),
   // Ensure this is exactly like this:
   messages: jsonb("messages").$type<{role: string, content: string}[]>().default([]).notNull(),
