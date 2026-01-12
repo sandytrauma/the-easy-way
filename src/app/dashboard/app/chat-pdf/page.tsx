@@ -9,6 +9,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, FileText, Send, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
 
 type Message = {
   role: "user" | "ai";
@@ -151,12 +155,23 @@ export default function ChatPdfClient({
               )}
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
                     msg.role === "user" 
                       ? "bg-indigo-600 text-white" 
                       : "bg-white text-slate-800 border border-slate-200"
                   }`}>
-                    {msg.content}
+                    {msg.role === "ai" ? (
+    <article className="prose prose-sm prose-slate max-w-none prose-p:leading-normal prose-p:my-1 prose-headings:text-indigo-600 prose-li:my-0 prose-pre:p-0">
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]} 
+        rehypePlugins={[rehypeHighlight]}
+      >
+        {msg.content}
+      </ReactMarkdown>
+    </article>
+  ) : (
+    msg.content
+  )}
                   </div>
                 </div>
               ))}
@@ -164,7 +179,7 @@ export default function ChatPdfClient({
                 <div className="flex justify-start">
                   <div className="bg-white border rounded-2xl px-4 py-2 flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin text-indigo-600" />
-                    <span className="text-xs text-slate-500">AI is thinking...</span>
+                    <span className="text-xs prose text-slate-500">AI is thinking...</span>
                   </div>
                 </div>
               )}

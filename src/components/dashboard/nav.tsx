@@ -4,7 +4,9 @@ import {
   FileSearch, 
   History, 
   Settings, 
-  CreditCard 
+  FileText, // Icon for Resume
+  ShieldAlert, // Icon for Admin
+  Sparkles
 } from "lucide-react";
 import { db } from "@/db";
 import { chats } from "@/db/schema";
@@ -19,7 +21,6 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
   const session = await auth();
   const userId = (session?.user as any).id;
 
-  // Optional: Fetch the 3 most recent chats for a "Quick Access" look
   const recentChats = await db
     .select()
     .from(chats)
@@ -29,10 +30,9 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
 
   return (
     <nav className="flex flex-col h-full py-4 px-3 space-y-6">
-      {/* Main Apps Section */}
       <div>
-        <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-          Apps
+        <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+          Core Apps
         </p>
         <div className="space-y-1">
           <Link
@@ -43,22 +43,31 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
             Overview
           </Link>
           
-          {/* THE NEW TAB */}
           <Link
             href="/dashboard/app/chat-pdf"
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors"
           >
-            <FileSearch className="h-4 w-4 text-indigo-600" />
+            <FileSearch className="h-4 w-4 text-indigo-500" />
             Chat with PDF
+          </Link>
+
+          <Link
+            href="/dashboard/app/resume-maker"
+            className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="h-4 w-4 text-indigo-600" />
+              Resume Maker
+            </div>
+            <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" />
           </Link>
         </div>
       </div>
 
-      {/* History / Recent Chats Section */}
       {recentChats.length > 0 && (
         <div>
           <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-            <History className="h-3 w-3" /> Recent Documents
+            <History className="h-3 w-3" /> Recent Chats
           </p>
           <div className="space-y-1">
             {recentChats.map((chat) => (
@@ -75,18 +84,18 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
       )}
 
       {isAdmin && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-slate-400 uppercase px-2">Admin</p>
+        <div className="pt-4 border-t">
+          <p className="px-3 text-xs font-semibold text-rose-500 uppercase tracking-wider mb-2">System</p>
           <Link 
             href="/dashboard/admin" 
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-100"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-slate-700 hover:bg-rose-50 hover:text-rose-700 transition-colors"
           >
+            <ShieldAlert className="h-4 w-4" />
             Admin Panel
           </Link>
         </div>
       )}
 
-      {/* Bottom Settings Section */}
       <div className="mt-auto border-t pt-4">
         <Link
           href="/dashboard/settings"

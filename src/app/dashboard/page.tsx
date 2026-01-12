@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -14,10 +15,11 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Link href="/dashboard/app/chat-pdf">
         <Card>
           <CardHeader>
-            <CardTitle>AI Content Writer</CardTitle>
-            <CardDescription>Generate blogs with GPT-4</CardDescription>
+            <CardTitle>Chat with PDF's</CardTitle>
+            <CardDescription>Summarize, analyze and do many more with the content of your PDF</CardDescription>
           </CardHeader>
           <CardContent>
             {userPlan === "free" ? (
@@ -27,6 +29,7 @@ export default async function DashboardPage() {
             )}
           </CardContent>
         </Card>
+        </Link>
         
         {/* Additional App Components go here */}
       </div>
