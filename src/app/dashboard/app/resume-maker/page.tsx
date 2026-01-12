@@ -1,26 +1,30 @@
 import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { users, resumes } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import ResumeMakerClient from "./resume-client";
 import { redirect } from "next/navigation";
 
 export default async function ResumeMakerPage() {
   const session = await auth();
+  if (!session?.user) redirect("/login");
 
-  if (!session) {
-    redirect("/login");
-  }
+  const dbUser = await db.query.users.findFirst({
+    where: eq(users.email, session.user.email!),
+  });
 
-  // Check if user is admin based on your schema logic
-  const isAdmin = (session.user as any)?.plan === "admin";
+  if (!dbUser) redirect("/login");
+
+  const existingResume = await db.query.resumes.findFirst({
+    where: eq(resumes.userId, dbUser.id),
+  });
 
   return (
-    <div className="h-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">AI Resume Builder</h1>
-        <p className="text-slate-500 text-sm">Create a professional, ATS-optimized resume in seconds.</p>
-      </div>
-      
-      {/* This renders the UI logic we built earlier */}
-      <ResumeMakerClient isAdmin={isAdmin} />
+    <div className="p-4 bg-slate-50 min-h-screen">
+      <ResumeMakerClient 
+        user={dbUser} 
+        initialData={existingResume?.data} 
+      />
     </div>
   );
 }

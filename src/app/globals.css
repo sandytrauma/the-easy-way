@@ -126,14 +126,8 @@
 
 
 @media print {
-  /* Force background colors and gradients to show in PDF */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-  }
-  
-  /* Hide the UI elements you don't want in the PDF */
-  .no-print {
-    display: none !important;
   }
 }

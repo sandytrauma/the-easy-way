@@ -98,7 +98,7 @@ export default function ChatPdfClient({
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {!pdfText ? (
-        <Card className="p-12 border-dashed border-2 text-center bg-slate-50/50 transition-all hover:bg-slate-50 hover:border-indigo-300">
+        <Card className="p-12 border-dashed border-2 text-center bg-slate-50/50 transition-all hover:bg-slate-50 hover:border-indigo-300 cursor-pointer">
           <input 
             type="file" 
             id="pdf-input" 
@@ -128,7 +128,7 @@ export default function ChatPdfClient({
           </label>
         </Card>
       ) : (
-        <Card className="flex flex-col h-[650px] shadow-xl overflow-hidden border-none ring-1 ring-slate-200">
+        <Card className="flex flex-col h-[650px] shadow-xl overflow-y-scroll border-none ring-1 ring-slate-200">
           <div className="bg-indigo-600 p-4 text-white flex justify-between items-center">
             <h3 className="font-medium flex items-center gap-2">
               <FileText className="h-4 w-4" /> 
