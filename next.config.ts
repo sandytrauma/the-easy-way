@@ -1,12 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // This helps Next.js handle the binary/complex parts of PDF.js
+  // Keeps the library out of the client bundle
   serverExternalPackages: ["pdfjs-dist"],
-  turbopack: {
-  },
-  
 
+  
 };
 
 export default nextConfig;

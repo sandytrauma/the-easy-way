@@ -4,9 +4,11 @@ import {
   FileSearch, 
   History, 
   Settings, 
-  FileText, // Icon for Resume
-  ShieldAlert, // Icon for Admin
-  Sparkles
+  FileText, 
+  ShieldAlert, 
+  Sparkles,
+  ReceiptText, // New Icon for Expense Tracker
+  CreditCard
 } from "lucide-react";
 import { db } from "@/db";
 import { chats } from "@/db/schema";
@@ -37,7 +39,7 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
         <div className="space-y-1">
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors text-slate-700"
           >
             <LayoutDashboard className="h-4 w-4 text-slate-500" />
             Overview
@@ -45,7 +47,7 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
           
           <Link
             href="/dashboard/app/chat-pdf"
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors text-slate-700"
           >
             <FileSearch className="h-4 w-4 text-indigo-500" />
             Chat with PDF
@@ -53,13 +55,25 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
 
           <Link
             href="/dashboard/app/resume-maker"
-            className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+            className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors text-slate-700"
           >
             <div className="flex items-center gap-3">
-              <FileText className="h-4 w-4 text-indigo-600" />
+              <FileText className="h-4 w-4 text-emerald-500" />
               Resume Maker
             </div>
             <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" />
+          </Link>
+
+          {/* NEW: Expense Tracker Link */}
+          <Link
+            href="/dashboard/app/expenses"
+            className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors text-slate-700"
+          >
+            <div className="flex items-center gap-3">
+              <ReceiptText className="h-4 w-4 text-orange-500" />
+              Expense Tracker
+            </div>
+            <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-bold">AI</span>
           </Link>
         </div>
       </div>
@@ -99,7 +113,7 @@ export async function DashboardNav({ isAdmin }: DashboardNavProps) {
       <div className="mt-auto border-t pt-4">
         <Link
           href="/dashboard/settings"
-          className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors"
+          className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors text-slate-700"
         >
           <Settings className="h-4 w-4 text-slate-500" />
           Settings

@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { 
   Plus, Trash2, Download, Sparkles, Lock, ShieldCheck, Loader2,
   Phone, Mail, MapPin, User, Briefcase, GraduationCap, FolderDot, Languages,
-  Calendar, Award, Cpu, Printer // Added Printer icon
+  Calendar, Award, Cpu, Printer 
 } from "lucide-react";
 import { saveResumeToDB, optimizeResumeWithAI } from "@/lib/actions/resume-actions";
 import { toast } from "sonner";
@@ -40,7 +40,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
     return { ...defaultTemplate, ...initialData };
   });
 
-  // ATS SCORE LOGIC
   const atsScore = useMemo(() => {
     let score = 0;
     const skills = typeof resumeData.skills === 'string' ? resumeData.skills.toLowerCase() : "";
@@ -53,7 +52,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
     return Math.min(score, 100);
   }, [resumeData]);
 
-  // AI POLISH LOGIC
   const handleAIPolish = async (fieldKey: string, currentText: string, path: string[]) => {
     if (!canDownload) return toast.error("Upgrade to Pro for AI Polish!");
     if (!currentText) return toast.error("Please enter some text first.");
@@ -75,10 +73,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
     setIsOptimizing(null);
   };
 
-  /**
-   * PRINT FUNCTIONALITY
-   * Generates a PDF/Print dialogue using the resumeRef
-   */
   const handlePrint = useReactToPrint({
     contentRef: resumeRef,
     documentTitle: `Resume_${resumeData.personalInfo.name.replace(/\s+/g, '_')}`,
@@ -87,7 +81,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] gap-4 p-4 bg-slate-100">
       
-      {/* EDITOR SIDE */}
       <div className="flex-[0.4] flex flex-col gap-4 overflow-hidden">
         <Card className="flex-1 p-6 overflow-y-auto space-y-6 bg-white border-none shadow-xl scrollbar-hide">
           <div className="flex justify-between items-center border-b pb-4">
@@ -95,7 +88,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
             <Button onClick={() => saveResumeToDB(resumeData)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 transition-colors">Save Progress</Button>
           </div>
 
-          {/* ATS DASHBOARD */}
           <div className="p-4 bg-slate-900 rounded-xl text-white space-y-2 shadow-inner">
             <div className="flex justify-between items-center text-indigo-400">
               <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -106,7 +98,24 @@ export default function ResumeMakerClient({ user, initialData }: any) {
             <Progress value={atsScore} className="h-1 bg-slate-800" />
           </div>
 
-          {/* SUMMARY EDITOR WITH AI POLISH */}
+          {/* PERSONAL INFO SECTION */}
+          <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <h3 className="text-[10px] font-black uppercase text-indigo-600 flex items-center gap-2"><User size={14}/> Contact Information</h3>
+            <Input placeholder="Full Name" value={resumeData.personalInfo.name} onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, name: e.target.value}})} />
+            <Input placeholder="Email" value={resumeData.personalInfo.email} onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, email: e.target.value}})} />
+            <Input placeholder="Phone" value={resumeData.personalInfo.phone} onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, phone: e.target.value}})} />
+            <Input placeholder="Location" value={resumeData.personalInfo.location} onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, location: e.target.value}})} />
+          </div>
+
+          {/* PERSONAL DETAILS SECTION */}
+          <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <h3 className="text-[10px] font-black uppercase text-indigo-600 flex items-center gap-2"><User size={14}/> Personal Details</h3>
+            <Input placeholder="Father's Name" value={resumeData.personalDetails.fathersName} onChange={(e) => setResumeData({...resumeData, personalDetails: {...resumeData.personalDetails, fathersName: e.target.value}})} />
+            <Input placeholder="Date of Birth" value={resumeData.personalDetails.dob} onChange={(e) => setResumeData({...resumeData, personalDetails: {...resumeData.personalDetails, dob: e.target.value}})} />
+            <Input placeholder="Languages" value={resumeData.personalDetails.languages} onChange={(e) => setResumeData({...resumeData, personalDetails: {...resumeData.personalDetails, languages: e.target.value}})} />
+            <Input placeholder="Permanent Address" value={resumeData.personalDetails.address} onChange={(e) => setResumeData({...resumeData, personalDetails: {...resumeData.personalDetails, address: e.target.value}})} />
+          </div>
+
           <div className="p-4 bg-indigo-50/50 rounded-lg border border-indigo-100 space-y-3">
             <div className="flex justify-between items-center">
               <h3 className="text-[10px] font-black uppercase text-indigo-600 flex items-center gap-2">
@@ -127,7 +136,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
             />
           </div>
 
-          {/* SKILLS EDITOR WITH AI OPTIMIZER */}
           <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
             <div className="flex justify-between items-center">
               <h3 className="text-[10px] font-black uppercase text-indigo-600 flex items-center gap-2">
@@ -146,18 +154,8 @@ export default function ResumeMakerClient({ user, initialData }: any) {
               className="text-xs min-h-[60px]"
               onChange={(e) => setResumeData({...resumeData, skills: e.target.value})} 
             />
-            <p className="text-[8px] text-slate-400 italic">Separate skills with commas for automatic tag generation.</p>
           </div>
 
-          {/* PERSONAL DETAILS EDITOR */}
-          <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
-            <h3 className="text-[10px] font-black uppercase text-indigo-600 flex items-center gap-2"><User size={14}/> Personal Details</h3>
-            <Input placeholder="Father's Name" value={resumeData.personalDetails.fathersName} onChange={(e) => setResumeData({...resumeData, personalDetails: {...resumeData.personalDetails, fathersName: e.target.value}})} />
-            <Input placeholder="Date of Birth" value={resumeData.personalDetails.dob} onChange={(e) => setResumeData({...resumeData, personalDetails: {...resumeData.personalDetails, dob: e.target.value}})} />
-            <Input placeholder="Address" value={resumeData.personalDetails.address} onChange={(e) => setResumeData({...resumeData, personalDetails: {...resumeData.personalDetails, address: e.target.value}})} />
-          </div>
-
-          {/* EXPERIENCE EDITOR */}
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b pb-1">
               <h3 className="text-[10px] font-black uppercase text-indigo-600">Work Experience</h3>
@@ -186,7 +184,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
             ))}
           </div>
 
-          {/* EDUCATION EDITOR */}
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b pb-1">
               <h3 className="text-[10px] font-black uppercase text-indigo-600">Education</h3>
@@ -215,7 +212,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
           </div>
         </Card>
 
-        {/* PRINT ACTION BAR - STICKY AT BOTTOM OF EDITOR */}
         <Card className="p-4 bg-white shadow-2xl border-t flex items-center justify-between gap-4">
             <div className="flex flex-col">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ready to go?</span>
@@ -230,9 +226,7 @@ export default function ResumeMakerClient({ user, initialData }: any) {
         </Card>
       </div>
 
-      {/* PREVIEW SIDE */}
       <div className="flex-1 relative bg-slate-300 p-8 overflow-y-auto scrollbar-hide">
-        {/* added print:m-0 print:shadow-none to ensure clean PDF export */}
         <div ref={resumeRef} className="bg-white w-[210mm] min-h-[297mm] mx-auto p-12 shadow-2xl flex flex-col font-sans text-slate-900 border-t-[12px] border-indigo-600 print:shadow-none print:m-0">
           
           <div className="border-b-4 border-slate-900 pb-4 mb-6">
@@ -258,7 +252,6 @@ export default function ResumeMakerClient({ user, initialData }: any) {
                 <div key={i} className="mb-4">
                   <div className="flex justify-between font-bold text-xs uppercase">
                     <span className="text-slate-900">{exp.role}</span>
-                    
                   </div>
                   <div className="text-indigo-600 font-black text-[10px] uppercase mb-1 tracking-wider">{exp.company}</div>
                   <p className="text-[10px] text-slate-600 leading-snug">{exp.desc}</p>

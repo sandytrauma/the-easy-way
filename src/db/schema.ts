@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, numeric, pgTable, serial, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -44,5 +44,18 @@ export const resumes = pgTable("resumes", {
   }>().notNull(),
   template: text("template").default("vibrant"),
   isPaid: boolean("is_paid").default(false), // Track payment status
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  userId: text("userId").notNull(),
+  vendor: text("vendor"),
+  date: text("date"),
+  amount: numeric("amount", { precision: 10, scale: 2 }),
+  category: text("category"), // e.g., Travel, Food, Software
+  taxAmount: numeric("taxAmount", { precision: 10, scale: 2 }),
+  currency: text("currency").default("INR"),
+  rawText: text("rawText"), // Store full text just in case
   createdAt: timestamp("created_at").defaultNow(),
 });
