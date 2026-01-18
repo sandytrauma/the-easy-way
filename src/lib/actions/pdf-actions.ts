@@ -1,63 +1,81 @@
 "use server";
 
 import { db } from "@/db";
-import { users, chats } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { chats } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
-export async function uploadAndParsePDF(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) return { error: "Unauthorized" };
-
-  const file = formData.get("file") as File;
-  if (!file) return { error: "No file provided" };
+// Explicitly defining the return type fixes the TypeScript 'res.chatId' error
+export async function uploadAndParsePDF(formData: FormData): Promise<
+  { error: string } | { success: true; chatId: number }
+> {
+  let newChatId: number | null = null;
 
   try {
-    // 1. Dynamic import of pdfjs-dist (required for Next.js Server Components)
+    const session = await auth();
+    const userId = (session?.user as any)?.id;
+    if (!userId) return { error: "Unauthorized" };
+
+    const file = formData.get("file") as File;
+    if (!file) return { error: "No file provided" };
+
+    // Vercel Limit Guard
+    if (file.size > 4.5 * 1024 * 1024) {
+      return { error: "File too large for serverless processing (Max 4.5MB)." };
+    }
+
+    // 1. EXTRACTION LOGIC
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    // @ts-ignore
+    await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
 
-    const bytes = await file.arrayBuffer();
-    const buffer = new Uint8Array(bytes);
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjs.getDocument({
+      data: new Uint8Array(arrayBuffer),
+      useSystemFonts: true,
+      disableFontFace: true,
+    });
 
-    // 2. Load the document
-    const loadingTask = pdfjs.getDocument({ data: buffer });
     const pdf = await loadingTask.promise;
-    
     let fullText = "";
-
-    // 3. Loop through pages and extract text
-    for (let i = 1; i <= pdf.numPages; i++) {
+    const maxPages = Math.min(pdf.numPages, 25);
+    
+    for (let i = 1; i <= maxPages; i++) {
       const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(" ");
-      fullText += pageText + "\n";
+      const content = await page.getTextContent();
+      const strings = content.items.map((item: any) => item.str || "");
+      fullText += strings.join(" ") + "\n";
+      if (fullText.length > 120000) break;
     }
 
-    const extractedText = fullText.trim();
-
-    if (!extractedText) {
-      return { error: "Could not extract text. The PDF might be an image." };
+    if (!fullText.trim()) {
+      return { error: "Could not extract text from this PDF." };
     }
 
-    // 4. Save to Database (Neon)
-    const userId = (session.user as any).id;
+    // 2. DATABASE INSERT
     const [newChat] = await db.insert(chats).values({
       userId: userId,
       pdfName: file.name,
-      extractedText: extractedText,
+      extractedText: fullText,
       messages: [],
-    }).returning({ insertedId: chats.id });
+    }).returning({ id: chats.id });
 
-    return { 
-      success: true, 
-      text: extractedText.substring(0, 1000), // Return snippet for UI
-      chatId: newChat.insertedId 
-    };
+    newChatId = newChat.id;
 
-  } catch (err) {
-    console.error("PDFJS Error:", err);
-    return { error: "Failed to parse PDF. Please ensure it's a valid document." };
+    // 3. CACHE REVALIDATION (Fixes "Chat not showing" issue)
+    revalidatePath("/dashboard/app", "layout");
+
+  } catch (error: any) {
+    if (error.digest?.includes('NEXT_REDIRECT')) throw error;
+    console.error("PDF_PARSE_ERROR:", error);
+    return { error: "Server error during PDF parsing." };
   }
+
+  // 4. REDIRECT
+  if (newChatId) {
+    redirect(`/dashboard/app/chat-pdf/${newChatId}`);
+  }
+
+  return { error: "Failed to initialize chat session." };
 }

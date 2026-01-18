@@ -3,21 +3,32 @@
 import { db } from "@/db";
 import { expenses } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import type { ObjectSchema } from "@google/generative-ai";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 
+// Define a schema to force Gemini to follow your structure exactly
+const extractionSchema: ObjectSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    vendor: { type: SchemaType.STRING },
+    date: { type: SchemaType.STRING },
+    totalAmount: { type: SchemaType.NUMBER },
+    taxAmount: { type: SchemaType.NUMBER },
+    category: { type: SchemaType.STRING },
+  },
+  required: ["vendor", "date", "totalAmount", "category"],
+};
+
 export async function uploadAndProcessExpense(formData: FormData) {
   const session = await auth();
-  const userId = (session?.user as any)?.id;
   const user = session?.user as any;
+  const userId = user?.id;
   
-  if (!userId) return { error: "Unauthorized" };
-
-  // 1. Guard: Check Plan
-  if (!user || (user.plan !== "pro" && user.plan !== "admin")) {
+  if (!userId || (user.plan !== "pro" && user.plan !== "admin")) {
     return { error: "Pro Plan Required" };
   }
 
@@ -25,38 +36,50 @@ export async function uploadAndProcessExpense(formData: FormData) {
   if (!file) return { error: "No file provided" };
 
   try {
-    // 2. Extract Text using PDF.js
-    // @ts-ignore
-    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+    let contentToAnalyze: any;
 
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-    
-    let fullText = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+    if (file.type === "application/pdf") {
+      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjs.getDocument({
+        data: new Uint8Array(arrayBuffer),
+        useSystemFonts: true,
+        disableFontFace: true,
+      }).promise;
+      
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str || "").join(" ") + "\n";
+      }
+      contentToAnalyze = text;
+    } else if (file.type.startsWith("image/")) {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Data = Buffer.from(arrayBuffer).toString("base64");
+      contentToAnalyze = [
+        { inlineData: { data: base64Data, mimeType: file.type } },
+        "Extract invoice data from this image."
+      ];
     }
 
-    // 3. AI Structured Extraction (FIXED MODEL NAME)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `Extract invoice data from this text into a JSON object.
-    Fields: vendor (company name), date (DD/MM/YYYY), totalAmount (number), taxAmount (number), category (Food, Travel, Office, Fuel, or Other).
-    
-    TEXT: ${fullText}
-    
-    RETURN ONLY RAW JSON. No markdown backticks.`;
+    // Force JSON Mode using generationConfig
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: extractionSchema,
+      }
+    });
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(contentToAnalyze);
     const responseText = result.response.text();
     
-    // Safety check for JSON parsing
-    const cleanJson = responseText.replace(/```json|```/g, "").trim();
-    const extracted = JSON.parse(cleanJson);
+    // Safety check for empty or malformed responses
+    if (!responseText) throw new Error("AI returned an empty response.");
+    
+    const extracted = JSON.parse(responseText);
 
-    // 4. Save to Database
     await db.insert(expenses).values({
       userId,
       vendor: extracted.vendor || "Unknown",
@@ -69,8 +92,8 @@ export async function uploadAndProcessExpense(formData: FormData) {
     revalidatePath("/dashboard/app/expenses");
     return { success: true };
   } catch (error: any) {
-    console.error("Expense Error:", error);
-    return { error: "Failed to process receipt: " + error.message };
+    console.error("Extraction Error:", error);
+    return { error: error.message };
   }
 }
 
@@ -79,7 +102,7 @@ export async function deleteExpense(id: number) {
   const user = session?.user as any;
 
   if (!user || (user.plan !== "pro" && user.plan !== "admin")) {
-    return { error: "Pro Plan Required" };
+    return { error: "Unauthorized" };
   }
 
   try {
@@ -87,6 +110,6 @@ export async function deleteExpense(id: number) {
     revalidatePath("/dashboard/app/expenses");
     return { success: true };
   } catch (error) {
-    return { error: "Failed to delete" };
+    return { error: "Failed to delete expense" };
   }
 }

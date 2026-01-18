@@ -2,65 +2,50 @@
 
 import { db } from "@/db";
 import { chats } from "@/db/schema";
-import { eq, and } from "drizzle-orm"; // Added and for security
+import { eq, and } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
-export async function askPdfQuestion(chatId: number, question: string, pdfText: string) {
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
+
+export async function askPdfQuestion(chatId: number, question: string) {
   try {
     const session = await auth();
-    if (!session?.user) return { success: false, error: "Unauthorized" };
+    const userId = (session?.user as any)?.id;
+    if (!userId) return { success: false, error: "Unauthorized" };
 
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
-    
-    // TRY THIS MODEL STRING: "gemini-1.5-flash-latest" or "gemini-1.5-flash"
-    // Sometimes 'gemini-1.5-flash' requires the latest SDK version
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const [chatData] = await db.select()
+      .from(chats)
+      .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
 
-    const prompt = `
-      You are an AI assistant. Use the following context to answer the question.
-      Context: ${pdfText.substring(0, 25000)}
-      
-      Question: ${question}
-    `;
+    if (!chatData) return { success: false, error: "Chat not found" };
+
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        generationConfig: { maxOutputTokens: 1000, temperature: 0.3 }
+    });
+
+    // Provide a safe window of context
+    const context = chatData.extractedText.substring(0, 30000);
+    const prompt = `Context: ${context}\n\nQuestion: ${question}`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const aiText = response.text();
-
-    // 1. Fetch the existing chat record
-    // Added a security check: ensure the chat belongs to the user
-    const [existingChat] = await db.select()
-      .from(chats)
-      .where(
-        and(
-          eq(chats.id, chatId),
-          eq(chats.userId, (session.user as any).id)
-        )
-      );
-
-    if (!existingChat) {
-      return { success: false, error: "Chat not found" };
-    }
-
-    const currentMessages = (existingChat.messages as any[]) || [];
+    const aiResponse = result.response.text();
 
     const updatedMessages = [
-      ...currentMessages,
+      ...chatData.messages,
       { role: "user", content: question },
-      { role: "ai", content: aiText },
+      { role: "ai", content: aiResponse },
     ];
 
-    // 2. Update database
     await db.update(chats)
       .set({ messages: updatedMessages })
       .where(eq(chats.id, chatId));
 
-    return { success: true, answer: aiText };
-
-  } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    // This will help you see if it's a safety filter issue or API issue
-    return { success: false, error: "AI Assistant is currently unavailable. Check console." };
+    revalidatePath(`/dashboard/app/chat-pdf/${chatId}`);
+    return { success: true, answer: aiResponse };
+  } catch (error) {
+    return { success: false, error: "AI Assistant failed." };
   }
 }

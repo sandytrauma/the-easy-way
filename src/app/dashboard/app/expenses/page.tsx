@@ -8,6 +8,8 @@ import { Receipt, TrendingUp, Wallet } from "lucide-react";
 import { Download } from "lucide-react";
 import ExcelExportBtn from "./excel-export-btn";
 import { DeleteExpenseBtn } from "./delete-btn";
+// Import the new Chart component
+import ExpenseDonutChart from "./expense-chart"; 
 
 export default async function ExpensePage() {
   const session = await auth();
@@ -32,6 +34,7 @@ export default async function ExpensePage() {
         </div>
       </div>
 
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4 flex items-center gap-4">
           <div className="p-3 bg-emerald-100 rounded-lg text-emerald-600"><Wallet /></div>
@@ -56,36 +59,56 @@ export default async function ExpensePage() {
         </Card>
       </div>
 
-     <Card className="overflow-hidden border-none shadow-xl bg-white">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 border-b">
-            <tr className="text-xs uppercase text-slate-500 font-bold">
-              <th className="p-4">Date</th>
-              <th className="p-4">Vendor</th>
-              <th className="p-4">Category</th>
-              <th className="p-4 text-right">Amount</th>
-              <th className="p-4 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {data.map((item) => (
-              <tr key={item.id} className="text-sm hover:bg-slate-50 transition-colors">
-                <td className="p-4 text-slate-500">{item.date}</td>
-                <td className="p-4 font-bold text-slate-800">{item.vendor}</td>
-                <td className="p-4">
-                  <span className="px-2 py-1 bg-slate-100 rounded text-[10px] font-black uppercase tracking-tighter">
-                    {item.category}
-                  </span>
-                </td>
-                <td className="p-4 text-right font-black text-indigo-600">₹{item.amount}</td>
-                <td className="p-4 text-center">
-                   <DeleteExpenseBtn id={item.id} userPlan={userPlan} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      {/* New Layout Section: Chart + Table */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Chart Column (Takes 1/3 of the width on large screens) */}
+        <div className="lg:col-span-1">
+          <ExpenseDonutChart data={data} />
+        </div>
+
+        {/* Table Column (Takes 2/3 of the width on large screens) */}
+        <div className="lg:col-span-2">
+          <Card className="overflow-hidden border-none shadow-xl bg-white h-full">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-slate-50 border-b">
+                <tr className="text-xs uppercase text-slate-500 font-bold">
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Vendor</th>
+                  <th className="p-4">Category</th>
+                  <th className="p-4 text-right">Amount</th>
+                  <th className="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {data.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-slate-400 italic">
+                      No expenses found. Upload a receipt to get started.
+                    </td>
+                  </tr>
+                ) : (
+                  data.map((item) => (
+                    <tr key={item.id} className="text-sm hover:bg-slate-50 transition-colors">
+                      <td className="p-4 text-slate-500">{item.date}</td>
+                      <td className="p-4 font-bold text-slate-800">{item.vendor}</td>
+                      <td className="p-4">
+                        <span className="px-2 py-1 bg-slate-100 rounded text-[10px] font-black uppercase tracking-tighter">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right font-black text-indigo-600">₹{item.amount}</td>
+                      <td className="p-4 text-center">
+                        <DeleteExpenseBtn id={item.id} userPlan={userPlan} />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -55,7 +55,7 @@ export default function ExpenseClient({ userPlan }: ExpenseClientProps) {
         hidden 
         onChange={handleUpload} 
         disabled={loading || !isPro} 
-        accept=".pdf"
+        accept=".pdf,image/jpeg,image/png,image/webp"
       />
       
       <Button 

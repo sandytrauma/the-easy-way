@@ -2,44 +2,35 @@ import { db } from "@/db";
 import { chats } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { notFound } from "next/navigation";
-import ChatPdfClient from "../page";
+import { notFound, redirect } from "next/navigation";
+import ChatPdfPage from "../page";
 
 export default async function SavedChatPage({ 
   params 
 }: { 
-  params: Promise<{ id: string }> // Params is now a Promise in Next.js 15/16
+  params: Promise<{ id: string }> 
 }) {
   const session = await auth();
-  const userId = (session?.user as any).id;
+  const userId = (session?.user as any)?.id;
 
-  // 1. Await the params
-  const resolvedParams = await params;
-  const chatId = parseInt(resolvedParams.id);
+  if (!userId) redirect("/api/auth/signin");
 
-  // 2. Safety check: If ID is not a number, show 404
-  if (isNaN(chatId)) {
-    return notFound();
-  }
+  const { id } = await params;
+  const chatId = parseInt(id);
+  if (isNaN(chatId)) return notFound();
 
-  // 3. Fetch from Neon
   const [chat] = await db
     .select()
     .from(chats)
-    .where(
-      and(
-        eq(chats.id, chatId),
-        eq(chats.userId, userId)
-      )
-    );
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
 
   if (!chat) return notFound();
 
   return (
-    <ChatPdfClient 
+    <ChatPdfPage 
       initialChatId={chat.id}
       initialText={chat.extractedText}
-      initialMessages={chat.messages as any[]}
+      initialMessages={(chat.messages as any[]) || []}
     />
   );
 }
