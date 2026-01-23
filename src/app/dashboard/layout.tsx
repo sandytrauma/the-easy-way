@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <aside className="w-64 border-r bg-slate-50/50 hidden md:block">
         <div className="flex h-full flex-col gap-4">
           <div className="h-14 flex items-center px-6 font-bold text-indigo-600 border-b">
-            SAAP : Pro Template
+            The Easy Way : Pro Template
           </div>
           <div className="flex-1 overflow-y-auto">
             <DashboardNav isAdmin={isAdmin} />

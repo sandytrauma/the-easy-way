@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, customType, doublePrecision, integer, jsonb, numeric, pgTable, serial, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, customType, decimal, doublePrecision, integer, jsonb, numeric, pgTable, serial, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 const pgVector = customType<{ data: number[] }>({
   dataType() {
@@ -115,4 +115,42 @@ export const complianceEmbeddings = pgTable("compliance_embeddings", {
   content: text("content").notNull(), // The actual text (e.g., "Section 80C limit is ₹1.5L")
   embedding: pgVector("embedding").notNull(), 
   metadata: text("metadata"),// e.g., { page: 5, region: "India" }
+});
+
+
+
+// 1. Hotels (The Tenant)
+export const hotels = pgTable("hotels", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  location: text("location"),
+  adminId: text("admin_id").notNull(), // Links to the User who owns the chain
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 2. Menu Categories (linked to hotel)
+export const categories = pgTable("categories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  name: text("name").notNull(), // e.g., "Starters", "Drinks"
+});
+
+// 3. Products/Items
+export const products = pgTable("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  categoryId: uuid("category_id").references(() => categories.id),
+  name: text("name").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  image: text("image"),
+});
+
+// 4. Orders
+export const orders = pgTable("orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  tableNumber: text("table_number"),
+  status: text("status").default("pending"), // pending, paid, cancelled
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow(),
 });
