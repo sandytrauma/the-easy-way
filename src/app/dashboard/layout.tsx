@@ -25,8 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="h-14 flex items-center px-6 font-bold text-indigo-600 border-b">
             SAAP : Pro Template
           </div>
-          <div className="flex-1">
-            {/* Pass the isAdmin prop to show/hide the Admin menu */}
+          <div className="flex-1 overflow-y-auto">
             <DashboardNav isAdmin={isAdmin} />
           </div>
         </div>
