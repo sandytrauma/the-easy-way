@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check } from "lucide-react";
 import { UpgradeButton } from "@/components/upgrage-button";
 
+
+
 export default async function UpgradePage() {
   const session = await auth();
   const currentPlan = (session?.user as any)?.plan;
