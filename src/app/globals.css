@@ -131,3 +131,36 @@
     print-color-adjust: exact !important;
   }
 }
+@media print {
+  /* Hide everything except things with 'print:block' */
+  body * {
+    visibility: hidden;
+  }
+  .print\:block, .print\:block * {
+    visibility: visible;
+  }
+  .print\:block {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  /* Hide the actual UI buttons and modals */
+  .print\:hidden {
+    display: none !important;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 20px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}

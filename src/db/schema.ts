@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, customType, decimal, doublePrecision, integer, jsonb, numeric, pgTable, serial, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, customType, decimal, doublePrecision, integer, jsonb, numeric, pgEnum, pgTable, serial, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 const pgVector = customType<{ data: number[] }>({
   dataType() {
@@ -143,6 +143,7 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   image: text("image"),
+  color: text("color").default("bg-slate-100"),
 });
 
 // 4. Orders
@@ -153,4 +154,122 @@ export const orders = pgTable("orders", {
   status: text("status").default("pending"), // pending, paid, cancelled
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ... existing hotels, products, orders tables
+
+export const roomStatusEnum = pgEnum("room_status", ["available", "occupied", "cleaning", "maintenance"]);
+
+export const rooms = pgTable("rooms", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id).notNull(),
+  number: text("number").notNull(),
+  type: text("type").notNull(), // e.g., Deluxe, Suite
+  status: roomStatusEnum("status").default("available").notNull(),
+  currentGuest: text("current_guest"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const bookings = pgTable("bookings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  roomId: uuid("room_id").references(() => rooms.id),
+  guestName: text("guest_name").notNull(),
+  checkIn: timestamp("check_in").notNull(),
+  checkOut: timestamp("check_out").notNull(),
+  source: text("source").default("direct"), // direct, booking.com (future)
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  status: text("status").default("reserved").notNull(), // 'reserved', 'checked_in', 'checked_out', 'cancelled'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const roomCharges = pgTable("room_charges", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bookingId: uuid("booking_id").references(() => bookings.id).notNull(),
+  hotelId: uuid("hotel_id").references(() => hotels.id).notNull(),
+  description: text("description").notNull(), // e.g., "Breakfast - Room Service"
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 1. Maintenance & Housekeeping
+export const maintenanceTasks = pgTable("maintenance_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  roomId: uuid("room_id").references(() => rooms.id),
+  issue: text("issue").notNull(), // e.g., "AC not cooling"
+  priority: text("priority").default("medium"), // low, medium, high, urgent
+  status: text("status").default("pending"), // pending, in-progress, completed
+  assignedTo: text("assigned_to"), // Staff Name
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 2. Kitchen & Inventory
+export const inventory = pgTable("inventory", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  itemName: text("item_name").notNull(), // e.g., "Basmati Rice"
+  category: text("category").notNull(), // e.g., "Kitchen", "Housekeeping"
+  quantity: doublePrecision("quantity").default(0),
+  unit: text("unit").default("kg"), // kg, liters, units
+  minStockLevel: doublePrecision("min_stock_level").default(5), // Alert threshold
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const kitchenOrders = pgTable("kitchen_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  roomNumber: text("room_number"),
+  orderItems: jsonb("order_items").notNull(), // e.g. [{ name: "Burger", qty: 1 }]
+  status: text("status").default("pending"), // pending, cooking, ready, served
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 3. Staff Rostering
+export const staffRoster = pgTable("staff_roster", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  staffName: text("staff_name").notNull(),
+  role: text("role").notNull(), // Chef, Cleaner, Receptionist
+  shiftStart: timestamp("shift_start").notNull(),
+  shiftEnd: timestamp("shift_end").notNull(),
+  status: text("status").default("scheduled"), // scheduled, present, absent
+});
+
+export const staff = pgTable("staff", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  name: text("name").notNull(),
+  role: text("role").notNull(), // 'chef', 'housekeeper', 'receptionist', 'maintenance'
+  phone: text("phone"),
+  status: text("status").default("active"), // 'active', 'on-leave', 'terminated'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const shifts = pgTable("shifts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  staffId: uuid("staff_id").references(() => staff.id),
+  hotelId: uuid("hotel_id").references(() => hotels.id),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  taskNotes: text("task_notes"), // e.g., "Deep clean 3rd floor"
+});
+
+export const transactions = pgTable("transactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").notNull(),
+  bookingId: uuid("booking_id"),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  type: text("type").notNull(), // 'room_charge', 'food_bev', 'tax', 'payment'
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const dailyReports = pgTable("daily_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hotelId: uuid("hotel_id").notNull(),
+  reportDate: timestamp("report_date").defaultNow(),
+  totalRevenue: numeric("total_revenue", { precision: 12, scale: 2 }),
+  occupancyRate: doublePrecision("occupancy_rate"),
+  roomsOccupied: numeric("rooms_occupied"),
 });
