@@ -37,6 +37,24 @@ export async function placeKitchenOrder(data: {
   revalidatePath(`/dashboard/pos/${data.hotelId}/kitchen`);
 }
 
+export async function addInventoryItem(formData: {
+  hotelId: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  minStock: number;
+}) {
+  await db.insert(inventory).values({
+    hotelId: formData.hotelId,
+    itemName: formData.name, // Matches your 'itemName' column
+    category: formData.category,
+    quantity: formData.quantity, // Must be a number (doublePrecision)
+    unit: formData.unit,
+    minStockLevel: formData.minStock, // Matches your 'minStockLevel' column
+  });
+}
+
 // 3. COMPLETE ORDER & DEDUCT INVENTORY
 export async function completeOrder(orderId: string, hotelId: string, items: any[]) {
   // Update Order Status
